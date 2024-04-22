@@ -66,7 +66,7 @@ Para un entorno de producción guardar la fecha en una archivo local no es viabl
 El código para la transmisión de Kafka se puede encontrar en `/src/kafka_client/kafka_stream_data.py` e implica principalmente consultar los datos de la API, realizar las transformaciones, eliminar posibles duplicados, actualizar la última fecha de publicación y entregar los datos usando Kafka productor.
 El siguiente paso es ejecutar el servicio Kafka definido en Docker-Compose definido a continuación:
 
-```bash
+```Dockerfile
 version: '3'
 
 services:
@@ -361,7 +361,7 @@ Algunos puntos claves sobre el operador en la tarea de spark streaming:
 - El comando ejecutará el envio de spark dentro del contenedor, especificando el maestro como local, incluidos los paquetes necesarios para la integración de PostgreSQL y Kafka y apunta al script `spark_streaming.py` que contiene la lógica del trabajo.
 - `Docker_url` representa la url del host donde se está corriendo el docker daemon. La solución natural es configurarlo como  `unix://var/run/docker.sock` y montar `var/run/docker.sock` en el contenedor de airflow. Un problema que se tiene con este enfoque es el permiso denegado de usar un archivo socket dentro del contenedor airflow. La solución sería cambiar los permisos con `chmod 777 var/run/docker.sock`, pero se tiene riesgos de seguridad importantes. Para evitar esto, implementamos una solución más segura utilizando bobrik/socat como docker-proxy. Este proxy, definido en el servicio docker-compose, escucha el puerto TCP 2375 y reenvía solicitudes al socket docker.
 
-```bash
+```Dockerfile
  docker-proxy:
     image: bobrik/socat
     command: "TCP4-LISTEN:2375,fork,reuseaddr UNIX-CONNECT:/var/run/docker.sock"
@@ -387,7 +387,7 @@ Algunos puntos a aclarar sobre los cambios hechos:
 - Se elimina el servicio airflow-worker y flowes porque solo se usan para el Celery executor. Tambien se elmina el servicio de redis en caché ya que funciona como backend para Celery. Tambien se elimina airflow-triggerer.
 - Se reemplaza la imagen base ${AIRFLOW_IMAGE_NAME:-apache/airflow:2.7.3} para los servicios restantes, principalmente el programador y el servidor web, por una imagen personalizada que crearemos cuando ejecutemos docker-compose.
 
-```bash
+```Dockerfile
 version: '3.8'
 x-airflow-common:
   &airflow-common
@@ -399,7 +399,7 @@ x-airflow-common:
 
 - Montamos los volúmenes necesarios que necesita airflow. AIRFLOW_PROJ_DIR designa el directorio del proyecto de fairflow que definiremos más adelante. También configuramos la red como airflow-kafka para poder comunicarnos con los servidores kafka boostrap.
 
-```bash
+```Dockerfile
 volumes:
   - ${AIRFLOW_PROJ_DIR:-.}/dags:/opt/airflow/dags
   - ${AIRFLOW_PROJ_DIR:-.}/logs:/opt/airflow/logs
