@@ -13,9 +13,10 @@ Todas las herramientas se construiran y se ejecutarán usando docker-compose
 ### Local Setup
 En primer lugar, puedes clonar del repositorio de Github en tu máquina local usando el siguiente comando:
 ```bash
-git clone
+git clone git@github.com:antonyper/Pipeline-DataEngineer.git
 ```
 Estructura del proyecto:
+
 ![overview](image/tree.png)
 
 - El directorio *airflow_resources* contiene un Dockerfile personalizado para configurar el airflow y un directorio de dags para crear y programar las task.
@@ -43,7 +44,7 @@ Puedes ver más ejemplos y realizar querys al dataser usando el siguiente [link]
 
 Se redefinirá las columnas de la data de la siguiente manera:
 
-- Las columnas `ndeg_de_version`  **y`rappelguid` que son parte de un sistema de versiones, se removerá porque no se usará en el proyecto.
+- Las columnas `ndeg_de_version` y `rappelguid` que son parte de un sistema de versiones, se removerá porque no se usará en el proyecto.
 - Se combinará las columnas que tratan sobre los riesgos del consumidor (`risques_encourus_par_le_consommateur` y `description_complementaire_du_risque`) para obtener una descripción más clara.
 - La columna `date_debut_fin_de_commercialisation` que indica el periodo de comercialización, se dividirá en dos columnas para realizar querys de una forma más fácil.
 - Se removerá los acentos de todas las columnas excepto las que hacen referencia a números o fechas. Es importante por un tema de calidad y para herramientas de procesamiento de texto.
@@ -107,11 +108,11 @@ networks:
 
 El archivo se puede descomponer de la siguiente manera:
 
-- El servicio kafka utiliza la imagen bitnami/kafka.
+- El servicio kafka utiliza la imagen `bitnami/kafka`.
 - Se configura con un solo broker que es sufuciente para este proyecto. Un broker de kafka es responsable de recibir los mensajes de los producer, almacenarlos y entregarlos a los consumers. Utiliza el puerto 9092 para la comunicación interna y el puerto 9094 para la comunicación externa.
 - Se asigna el directorio local kafka al directorio del contenedor acoplable /bitnami/kafka para garantizar la persistencia de los datos y una posible inspección de los datos de Kafka desde el sistema host.
 - Se configura el servicio kafka-ui que utiliza la imagen provectuslabs/kafka-ui:latest. Esto proporciona una interfaz de usuario para interactuar con el clúster de kafka.
-- Para asegurar la comunicación entre kafka y airflow se ejecutará como un servicio externo, se utilizará la red airflow-kafka
+- Para asegurar la comunicación entre kafka y airflow se ejecutará como un servicio externo, se utilizará la red `airflow-kafka`
 
 Antes de correr el servicio kafka, primero se debe crear la red airflow-kafka usando el siguiente comando:
 
@@ -261,17 +262,17 @@ if __name__ == "__main__":
 ```
 
 El código se puede dividir en las siguientes partes:
- 1.  En primer lugar, se crea la Spark session en la función create_spark_session()
+ 1.  En primer lugar, se crea la Spark session en la función `create_spark_session()`
 
 1. Luego, en la función create_initial_dataframe se ingesta el streaming data de topic de kafka usando una estructura de spark.
-2. Una vez la data ingestada, sen la función create_final_dataframe se transforma. Se applica un esquema a los datos entrantes json, definido por las columnas en DB_FIELDS, asegurando que los datos estén estructurados y listos para procesar.
+2. Una vez la data ingestada, sen la función `create_final_dataframe` se transforma. Se applica un esquema a los datos entrantes json, definido por las columnas en DB_FIELDS, asegurando que los datos estén estructurados y listos para procesar.
 3. En la función start_streaming. se lee la data existente en la base de datos, se compara con la data entrante, y se añade las nuevas filas.
 
 El código completo se encuentra en el archivo  `src/spark_pgsql/spark_streaming.py`. Se usará Airflow DockerOperator para ejecutar este trabajo.
 
-Se repasa el proceso de creación de la imagen de Docker que necesitamos para ejecutar el job Spark. ASe muestra el Dockerfile como referencia:
+Se repasa el proceso de creación de la imagen de Docker que necesitamos para ejecutar el job Spark. Se muestra el Dockerfile como referencia:
 
-```bash
+```Dockerfile
 FROM bitnami/spark:latest
 
 WORKDIR /opt/bitnami/spark
@@ -285,7 +286,7 @@ ENV POSTGRES_DOCKER_USER=host.docker.internal
 ENV POSTGRES_PASSWORD="admin"
 ```
 
-En este dockerfile, empieza con la imagen bitname/spark como base, luego se instala py4j, una herramienta necesaria para trabajar spark con python.
+En este dockerfile, empieza con la imagen `bitname/spark` como base, luego se instala py4j, una herramienta necesaria para trabajar spark con python.
 
 Las variables de entorno `POSTGRES_DOCKER_USER` y`POSTGRES_PASSWORD` son configurados para conectarse a la base da tos PostgreSQL. Como la base de datos esta en la máquina local, se utiliza host.docker.internal como user. 
 
@@ -299,7 +300,7 @@ docker buildx build -f spark/Dockerfile -t rappel-conso/spark:latest .
 
 Como se mencionó anteriormente, Apache Airflow siver como una herramienta de orquestación de data pipeline. Es responsable de programar y gestionar el flujo de trabajo de los jobs, asegurando que se ejecuten en un orden específico y en condiciones definidos. En este sistema, Airflow se utiliza para automatizar el flujo de datos desde la transmisión con kafka hasta el procesamiento con Spark.
 
-**Airflow DAG**
+### Airflow DAG
 
 Observamos  el Directed Acyclic Graph (DAG) que describe la secuencia y dependencias en las tareas, lo que permitirá a Airflow gestionar su ejecución.
 
@@ -350,15 +351,15 @@ Se explica algunos elementos clave de esta configuración:
 - la siguiente tarea es **Spark Stream Task** usa el DockerOperator para su ejecución. Corre el contenedor docker con la imágen personalizada Spark, encargado de procesar los datos recibidos de kafka.
 - Los tareas son ordenadas secuencialmente, este orden es crucial para asegurar que primero se transmite y se carga primero en kafka y luevo se procesa en spark.
 
-### Sobre DockerOperator
+### DockerOperator
 
-El uso del operador Docker nos permite ejecutar contenedoresDOcker que correspondan a las tareas. La principal ventaja de este enfoque es una gestión de paquetes más sencilla, un mejor aislamiento y una mayor capacidad de prueba. 
+El uso del operador Docker nos permite ejecutar contenedores Docker que correspondan a las tareas. La principal ventaja de este enfoque es una gestión de paquetes más sencilla, un mejor aislamiento y una mayor capacidad de prueba. 
 
 Algunos puntos claves sobre el operador en la tarea de spark streaming:
 
 - Se usa la imagen `rappel-conso/spark:latest` en la configuración de spark.
-- El comando ejecutará el envio de spark dentro del contenedor, especificando el maestro como local, incluidos los paquetes necesarios para la integración de PostgreSQL y Kafka y apunta al script spark_streaming.py que contiene la lógica del trabajo.
-- Docker_url representa la url del host donde se está corriendo el docker daemon. La solución natural es configurarlo como  `unix://var/run/docker.sock` **y montar`var/run/docker.sock` en el contenedor de airflow. Un problema que se tiene con este enfoque es el permiso denegado de usar un archivo socket dentro del contenedor airflow. La solución sería cambiar los permisos con chmod 777 var/run/docker.sock, pero se tiene riesgos de seguridad importantes. Para evitar esto, implementamos una solución más segura utilizando bobrik/socat como docker-proxy. Este proxy, definido en el servicio docker-compose, escucha el puerto TCP 2375 y reenvía solicitudes al socket docker.
+- El comando ejecutará el envio de spark dentro del contenedor, especificando el maestro como local, incluidos los paquetes necesarios para la integración de PostgreSQL y Kafka y apunta al script `spark_streaming.py` que contiene la lógica del trabajo.
+- `Docker_url` representa la url del host donde se está corriendo el docker daemon. La solución natural es configurarlo como  `unix://var/run/docker.sock` y montar `var/run/docker.sock` en el contenedor de airflow. Un problema que se tiene con este enfoque es el permiso denegado de usar un archivo socket dentro del contenedor airflow. La solución sería cambiar los permisos con `chmod 777 var/run/docker.sock`, pero se tiene riesgos de seguridad importantes. Para evitar esto, implementamos una solución más segura utilizando bobrik/socat como docker-proxy. Este proxy, definido en el servicio docker-compose, escucha el puerto TCP 2375 y reenvía solicitudes al socket docker.
 
 ```bash
  docker-proxy:
@@ -425,7 +426,7 @@ echo -e "AIRFLOW_UID=$(id -u)\nAIRFLOW_PROJ_DIR=\"./airflow_resources\"" > .env
 
 ```
 
-La interface de acceso de airflow webservice es Http://localhost:8800
+La interface de acceso de airflow webservice es http://localhost:8800
 
 ![Airflow web](image/airflowweb.png)
 
