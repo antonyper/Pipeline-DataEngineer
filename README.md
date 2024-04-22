@@ -12,9 +12,9 @@ Todas las herramientas se construiran y se ejecutarán usando docker-compose
 
 ### Local Setup
 En primer lugar, puedes clonar del repositorio de Github en tu máquina local usando el siguiente comando:
-'''bash
+```bash
 git clone
-'''
+```
 Estructura del proyecto:
 ![overview](image/tree.png)
 
@@ -25,9 +25,9 @@ Estructura del proyecto:
 - El directorio *spark* contiene un dockerfile personalizado para la configuración de Spark.
 - *src* contiene los modulos de python requeridos para correr la aplicación
 Para configurar tu entorno de desarrollo local, empieza instalando los packages de python requeridos. Para instalar todos los packages, puedes usar el siguiente comando:
-'''bash
+```bash
 pip install -r requirements.txt
-'''
+```
 ### Detalles sobre la API
 La API es de RappelConso de los servicios públicos franceses. Da acceso a los datos realacionados con retiradas de productos declarados por profesionales en Francia. Los datos son inicialmente 31 columnas y están en francés. Los más importantes son los siguientes:
 
